@@ -100,6 +100,8 @@ public class ComponentsDefine {
 
     public static final OfficialComponent UNDERTOW =  new OfficialComponent(49, "Undertow");
 
+    public static final OfficialComponent NETTY =  new OfficialComponent(50, "Netty");
+
     private static ComponentsDefine INSTANCE = new ComponentsDefine();
 
     private String[] components;
@@ -109,7 +111,7 @@ public class ComponentsDefine {
     }
 
     public ComponentsDefine() {
-        components = new String[50];
+        components = new String[51];
         addComponent(TOMCAT);
         addComponent(HTTPCLIENT);
         addComponent(DUBBO);
@@ -146,6 +148,7 @@ public class ComponentsDefine {
         addComponent(ACTIVEMQ_PRODUCER);
         addComponent(ACTIVEMQ_CONSUMER);
         addComponent(UNDERTOW);
+        addComponent(NETTY);
     }
 
     private void addComponent(OfficialComponent component) {

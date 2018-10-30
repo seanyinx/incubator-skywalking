@@ -85,8 +85,8 @@ import static wiremock.org.apache.http.HttpStatus.SC_OK;
 public class HttpAsyncClientInterceptorIntegrationTest {
 
     @ClassRule
-    public static final WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort());
-    private static final String payload = "hello world";
+    public static final WireMockRule WIRE_MOCK_RULE = new WireMockRule(wireMockConfig().dynamicPort());
+    private static final String PAYLOAD = "hello world";
     private final AtomicReference<HttpRequestWrapper> requestWrapperAtomicReference = new AtomicReference<HttpRequestWrapper>();
 
     @SegmentStoragePoint
@@ -108,7 +108,7 @@ public class HttpAsyncClientInterceptorIntegrationTest {
                         aResponse()
                                 .withHeader(CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                                 .withStatus(SC_OK)
-                                .withBody(payload)));
+                                .withBody(PAYLOAD)));
     }
 
     @Before
@@ -158,13 +158,13 @@ public class HttpAsyncClientInterceptorIntegrationTest {
     public void shouldReportSpan() {
         ContextManager.createEntrySpan("mock-test", new ContextCarrier());
 
-        HttpGet request = new HttpGet("http://localhost:" + wireMockRule.port() + "/test-web/test");
+        HttpGet request = new HttpGet("http://localhost:" + WIRE_MOCK_RULE.port() + "/test-web/test");
 
         httpAsyncClient.execute(request, messageGatheringCallback(messages, exceptions));
 
         receivedPayloadEventually(messages);
 
-        assertThat(messages, contains(payload));
+        assertThat(messages, contains(PAYLOAD));
         assertThat(exceptions.isEmpty(), is(true));
         ContextManager.stopSpan();
 
@@ -182,13 +182,13 @@ public class HttpAsyncClientInterceptorIntegrationTest {
 
     @Test
     public void shouldNotReportSpanIfNoParentSpan() {
-        HttpGet request = new HttpGet("http://localhost:" + wireMockRule.port() + "/test-web/test");
+        HttpGet request = new HttpGet("http://localhost:" + WIRE_MOCK_RULE.port() + "/test-web/test");
 
         httpAsyncClient.execute(request, messageGatheringCallback(messages, exceptions));
 
         receivedPayloadEventually(messages);
 
-        assertThat(messages, contains(payload));
+        assertThat(messages, contains(PAYLOAD));
         assertThat(exceptions.isEmpty(), is(true));
 
         assertThat(segmentStorage.getTraceSegments().size(), is(0));
@@ -243,7 +243,7 @@ public class HttpAsyncClientInterceptorIntegrationTest {
         assertThat(span.getOperationName(), is("/test-web/test"));
         assertThat(SpanHelper.getComponentId(span), is(26));
         List<KeyValuePair> tags = SpanHelper.getTags(span);
-        assertThat(tags.get(0).getValue(), is("http://localhost:" + wireMockRule.port() + "/test-web/test"));
+        assertThat(tags.get(0).getValue(), is("http://localhost:" + WIRE_MOCK_RULE.port() + "/test-web/test"));
         assertThat(tags.get(1).getValue(), is("GET"));
         assertThat(span.isExit(), is(true));
     }
