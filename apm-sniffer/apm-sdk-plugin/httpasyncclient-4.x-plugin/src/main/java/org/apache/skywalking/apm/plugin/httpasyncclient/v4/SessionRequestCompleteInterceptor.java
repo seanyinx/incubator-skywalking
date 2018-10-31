@@ -17,12 +17,17 @@
 
 package org.apache.skywalking.apm.plugin.httpasyncclient.v4;
 
+import org.apache.http.RequestLine;
 import org.apache.http.protocol.HttpContext;
 import org.apache.skywalking.apm.agent.core.context.ContextManager;
 import org.apache.skywalking.apm.agent.core.context.ContextSnapshot;
+import org.apache.skywalking.apm.agent.core.context.tag.Tags;
+import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
+import org.apache.skywalking.apm.agent.core.context.trace.SpanLayer;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.EnhancedInstance;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.InstanceMethodsAroundInterceptor;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.MethodInterceptResult;
+import org.apache.skywalking.apm.network.trace.component.ComponentsDefine;
 
 import java.lang.reflect.Method;
 
@@ -37,18 +42,18 @@ public class SessionRequestCompleteInterceptor implements InstanceMethodsAroundI
 
     @Override
     public void beforeMethod(EnhancedInstance objInst, Method method, Object[] allArguments, Class<?>[] argumentsTypes, MethodInterceptResult result) throws Throwable {
-        Object[] array = (Object[]) objInst.getSkyWalkingDynamicField();
-        if (array == null || array.length == 0) {
+        Object[] cacheValues = (Object[])objInst.getSkyWalkingDynamicField();
+        if (cacheValues == null) {
             return;
         }
-        ContextSnapshot snapshot = (ContextSnapshot) array[0];
-        ContextManager.createLocalSpan("httpasyncclient/local");
-        if (snapshot != null) {
-            ContextManager.continued(snapshot);
-        }
-        CONTEXT_LOCAL.set((HttpContext) array[1]);
 
-
+        String operationName = (String) cacheValues[1];
+        RequestLine requestLine = (RequestLine) cacheValues[2];
+        AbstractSpan span = ContextManager.createLocalSpan("future/responseCallback:" + operationName);
+        span.setComponent(ComponentsDefine.HTTP_ASYNC_CLIENT).setLayer(SpanLayer.HTTP);
+        Tags.URL.set(span, requestLine.getUri());
+        Tags.HTTP.METHOD.set(span, requestLine.getMethod());
+        ContextManager.continued((ContextSnapshot)cacheValues[0]);
     }
 
     @Override

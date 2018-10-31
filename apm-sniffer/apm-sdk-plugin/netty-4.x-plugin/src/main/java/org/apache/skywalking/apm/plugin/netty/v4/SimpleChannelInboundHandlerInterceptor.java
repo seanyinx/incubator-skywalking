@@ -42,7 +42,7 @@ public class SimpleChannelInboundHandlerInterceptor implements InstanceMethodsAr
         ContextCarrier contextCarrier = new ContextCarrier();
 
         AbstractSpan span = ContextManager.createEntrySpan("netty/channelRead", contextCarrier);
-        span.setComponent(ComponentsDefine.NETTY);
+        span.setComponent(ComponentsDefine.GRPC);
         SpanLayer.asHttp(span);
     }
 

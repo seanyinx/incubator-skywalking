@@ -49,7 +49,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.skywalking.apm.network.trace.component.ComponentsDefine.NETTY;
+import static org.apache.skywalking.apm.network.trace.component.ComponentsDefine.GRPC;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -113,7 +113,7 @@ public class NettyChannelHandlerInterceptorTest {
 
     private void assertSpan(AbstractTracingSpan span) {
         assertThat(span.getOperationName(), is("netty/channelRead"));
-        assertThat(SpanHelper.getComponentId(span), is(NETTY.getId()));
+        assertThat(SpanHelper.getComponentId(span), is(GRPC.getId()));
         assertThat(span.isEntry(), is(true));
     }
 

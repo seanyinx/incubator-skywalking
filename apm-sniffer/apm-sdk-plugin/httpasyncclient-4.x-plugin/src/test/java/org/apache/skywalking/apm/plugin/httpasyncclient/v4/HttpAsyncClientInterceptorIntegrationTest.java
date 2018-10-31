@@ -21,15 +21,12 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestWrapper;
-import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.InterceptedCloseableHttpAsyncClient;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.SessionRequestImpl;
-import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 import org.apache.http.nio.reactor.SessionRequestCallback;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
@@ -65,6 +62,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.http.protocol.HttpCoreContext.HTTP_REQUEST;
 import static org.apache.skywalking.apm.agent.core.context.SW3CarrierItem.HEADER_NAME;
 import static org.apache.skywalking.apm.plugin.httpasyncclient.v4.SessionRequestCompleteInterceptor.CONTEXT_LOCAL;
 import static org.awaitility.Awaitility.await;
@@ -95,8 +93,6 @@ public class HttpAsyncClientInterceptorIntegrationTest {
     @Rule
     public AgentServiceRule agentServiceRule = new AgentServiceRule();
 
-    private HttpAsyncRequestExecutorInterceptor requestExecutorInterceptor;
-
     private CloseableHttpAsyncClient httpAsyncClient;
     private final List<String> messages = new ArrayList<String>(1);
     private final List<Throwable> exceptions = new ArrayList<Throwable>(1);
@@ -114,24 +110,6 @@ public class HttpAsyncClientInterceptorIntegrationTest {
     @Before
     public void setUp() throws Exception {
         ServiceManager.INSTANCE.boot();
-        requestExecutorInterceptor = new HttpAsyncRequestExecutorInterceptor();
-
-        whenNew(HttpAsyncRequestExecutor.class).withAnyArguments().thenReturn(new HttpAsyncRequestExecutor() {
-            @Override
-            public void requestReady(NHttpClientConnection conn) {
-                try {
-                    final HttpContext context = CONTEXT_LOCAL.get();
-                    if (context != null) {
-                        requestWrapperAtomicReference.set((HttpRequestWrapper) context.getAttribute(HttpClientContext.HTTP_REQUEST));
-                    }
-                    requestExecutorInterceptor.beforeMethod(null, null, null, null, null);
-                    super.requestReady(conn);
-                    requestExecutorInterceptor.afterMethod(null, null, null, null, null);
-                } catch (Throwable throwable) {
-                    throwable.printStackTrace();
-                }
-            }
-        });
 
         whenNew("org.apache.http.impl.nio.client.InternalHttpAsyncClient")
                 .withAnyArguments()
@@ -192,7 +170,7 @@ public class HttpAsyncClientInterceptorIntegrationTest {
         assertThat(exceptions.isEmpty(), is(true));
 
         assertThat(segmentStorage.getTraceSegments().size(), is(0));
-        assertThat(requestWrapperAtomicReference.get(), is(nullValue()));
+        assertThat(requestWrapperAtomicReference.get().getFirstHeader(HEADER_NAME), is(nullValue()));
     }
 
     private void receivedPayloadEventually(final List<String> messages) {
@@ -253,6 +231,10 @@ public class HttpAsyncClientInterceptorIntegrationTest {
             @Override
             public Object answer(InvocationOnMock invocationOnMock) {
                 final Object[] arguments = invocationOnMock.getArguments();
+                final HttpContext context = CONTEXT_LOCAL.get();
+                if (context != null) {
+                    requestWrapperAtomicReference.set((HttpRequestWrapper) context.getAttribute(HTTP_REQUEST));
+                }
                 return new SessionRequestProxy((SocketAddress) arguments[0], (SocketAddress) arguments[1], arguments[2],
                         (SessionRequestCallback) arguments[3]);
             }
