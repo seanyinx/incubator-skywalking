@@ -33,6 +33,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.skywalking.apm.agent.core.boot.ServiceManager;
 import org.apache.skywalking.apm.agent.core.context.ContextCarrier;
 import org.apache.skywalking.apm.agent.core.context.ContextManager;
+import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
 import org.apache.skywalking.apm.agent.core.context.trace.AbstractTracingSpan;
 import org.apache.skywalking.apm.agent.core.context.trace.TraceSegment;
 import org.apache.skywalking.apm.agent.core.context.util.KeyValuePair;
@@ -156,6 +157,10 @@ public class HttpAsyncClientInterceptorIntegrationTest {
                 allOf(containsString(String.valueOf(traceSegment.getTraceSegmentId())),
                         containsString(String.valueOf(traceSegment.getRelatedGlobalTraces().get(0))))
         );
+
+        AbstractSpan span = spans.get(1);
+        assertThat(span.getOperationName(), is("mock-test"));
+        assertThat(span.isEntry(), is(true));
     }
 
     @Test
